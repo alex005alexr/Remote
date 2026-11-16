@@ -38,3 +38,26 @@ La conexión física y el reconocimiento Android todavía deben probarse con la 
 - El ESP32 ejecutará el control local de motores y periféricos.
 - Debe existir parada segura local ante pérdida de comunicación.
 - El teléfono no será responsable de estabilización ni de control de tiempo real de un dron.
+
+
+## Estado de comunicación USB serial en la app
+
+La rama `feature/usb-serial` incorpora una primera capa de comunicación serial para adaptadores habituales:
+
+- CDC/ACM (incluido el USB Serial/JTAG nativo de ESP32-S3, sujeto a la interfaz que exponga el firmware).
+- FTDI, CP210x, CH34x y Prolific, mediante la librería usb-serial-for-android.
+- Solicitud del permiso USB de Android antes de abrir el puerto.
+- Apertura inicial a 115200 baudios, 8 bits, sin paridad, 1 bit de parada (8N1).
+- Lectura de datos entrantes y visualización de los primeros bytes en hexadecimal.
+- Cierre del puerto al desconectar físicamente el dispositivo o cerrar la pantalla de la app.
+
+### Prueba cuando tengas el ESP32
+
+1. Conecta el ESP32 al teléfono con adaptador OTG USB-C y cable USB de datos.
+2. Abre Remote y pulsa **Actualizar dispositivos USB**.
+3. Pulsa **Conectar puerto serial USB** y acepta el permiso de Android.
+4. Comprueba que aparezca el estado de puerto conectado.
+5. Para verificar recepción, usa un firmware de prueba que envíe texto periódico por serial a 115200 baudios.
+6. Desconecta el cable y comprueba que Remote indique la desconexión.
+
+Esta fase solo abre el puerto y recibe bytes. Todavía no transmite comandos, no define el protocolo de control y no acciona motores. No se debe conectar hardware de potencia para estas pruebas. El siguiente paso, una vez validado con la placa real, será acordar un protocolo de mensajes y añadir validación, latido de conexión y parada segura en el controlador local.
