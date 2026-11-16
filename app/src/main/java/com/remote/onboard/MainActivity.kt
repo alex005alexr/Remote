@@ -29,9 +29,18 @@ class MainActivity : Activity() {
             text = "Iniciar sistema"
             setOnClickListener {
                 requestNotificationPermissionIfNeeded()
-                val intent = Intent(this@MainActivity, RemoteService::class.java)
-                ContextCompat.startForegroundService(this@MainActivity, intent)
-                status.text = "Solicitud de inicio enviada."
+                if (hasLocationPermission()) {
+                    startRemoteService()
+                } else {
+                    requestPermissions(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        ),
+                        LOCATION_PERMISSION_REQUEST
+                    )
+                    status.text = "Esperando permiso de ubicación…"
+                }
             }
         }
 
@@ -53,11 +62,46 @@ class MainActivity : Activity() {
         })
     }
 
+    private fun hasLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+    private fun startRemoteService() {
+        val intent = Intent(this, RemoteService::class.java)
+        ContextCompat.startForegroundService(this, intent)
+        status.text = "Remote activo. Recopilando telemetría."
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST) {
+            // Los sensores y la batería funcionan aunque el usuario no conceda GPS.
+            startRemoteService()
+            if (!hasLocationPermission()) {
+                status.text = "Remote activo. GPS sin permiso; sensores disponibles."
+            }
+        }
+    }
+
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
+    }
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST = 1002
     }
 }
