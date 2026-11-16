@@ -22,6 +22,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".TransmissionActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+
         <service
             android:name=".core.RemoteService"
             android:exported="false"
