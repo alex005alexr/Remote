@@ -63,4 +63,6 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
+    // USB CDC, FTDI, CP210x, CH34x and Prolific serial adapters.
+    implementation("com.github.mik3y:usb-serial-for-android:3.9.0")
 }
