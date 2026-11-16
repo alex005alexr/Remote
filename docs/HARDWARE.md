@@ -74,4 +74,26 @@ Se añadió una primera pantalla horizontal accesible desde **Abrir interfaz de 
 - Estado independiente de cámara, red y USB/ESP32.
 - Mantiene la pantalla encendida mientras está abierta.
 
-Esta entrega es únicamente la estructura visual y navegación. La selección frontal/trasera cambia el estado de interfaz, pero todavía no activa sensores de cámara ni transmite video. La siguiente integración será CameraX para obtener la imagen local y después el transporte de video por red/LTE. La pantalla de recepción de la estación base será una etapa separada si se decide que el video se visualice en otro dispositivo.
+La pantalla ahora integra CameraX y un servidor HTTP/MJPEG local para la primera prueba de video:
+- Solicita permiso de cámara al entrar.
+- Permite seleccionar cámara trasera o frontal (una a la vez).
+- Captura y reduce los fotogramas a 640×480 para la prueba inicial.
+- Publica el video en el puerto TCP 8080, dentro de la red local.
+- Muestra la dirección que debe abrirse desde el navegador de la PC y cuántos clientes están conectados.
+- El visor web está servido por el propio teléfono; la PC no necesita instalar un programa.
+
+### Primera prueba desde la PC
+1. Conecta el TECNO y la PC a la misma red Wi-Fi (no uses una red de invitados que aísle los dispositivos).
+2. Instala en el TECNO el APK de la rama de desarrollo que incluya esta integración.
+3. Abre Remote → **Abrir interfaz de transmisión** y concede el permiso de cámara.
+4. Espera a que la pantalla muestre una dirección similar a `http://192.168.1.25:8080`.
+5. Escribe esa dirección en Firefox, Chrome o Edge en la PC.
+6. Debe aparecer el video. En el teléfono, el contador de PC conectadas debe cambiar al abrir el visor.
+
+El servidor se detiene al cerrar la pantalla de transmisión. Esta primera versión es solo para una LAN de confianza: no tiene contraseña ni cifrado y no debe exponerse a Internet ni redirigirse el puerto del router.
+
+### Alcance y limitaciones de esta primera prueba
+- MJPEG es deliberadamente simple y compatible con navegadores, pero consume más ancho de banda que H.264/WebRTC.
+- La dirección IP puede cambiar al reconectar el teléfono a otra Wi-Fi.
+- La app debe permanecer en la pantalla de transmisión para mantener la cámara y el servidor activos.
+- La siguiente fase, después de validar la red local, será mejorar eficiencia/latencia y preparar el acceso remoto por 4G con autenticación y transporte seguro.
