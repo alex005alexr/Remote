@@ -2,6 +2,10 @@ package com.remote.onboard
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
@@ -25,7 +29,9 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+import com.remote.onboard.core.RemoteService
 import com.remote.onboard.video.MjpegHttpServer
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -44,11 +50,64 @@ class TransmissionActivity : ComponentActivity() {
     private lateinit var serverState: TextView
     private lateinit var viewerAddress: TextView
     private lateinit var clientState: TextView
+    private lateinit var telemetryState: TextView
     private lateinit var cameraExecutor: ExecutorService
     private var cameraProvider: ProcessCameraProvider? = null
     private var server: MjpegHttpServer? = null
     private var selectedLens = CameraSelector.LENS_FACING_BACK
     private var cameraPermissionRequested = false
+    private var telemetryReceiverRegistered = false
+
+
+    private val telemetryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != RemoteService.ACTION_TELEMETRY) return
+            val speed = if (intent.hasExtra("speed")) intent.getFloatExtra("speed", Float.NaN).toDouble() else Double.NaN
+            val accuracy = if (intent.hasExtra("accuracy")) intent.getFloatExtra("accuracy", Float.NaN).toDouble() else Double.NaN
+            val heading = if (intent.hasExtra("azimuth")) intent.getFloatExtra("azimuth", Float.NaN).toDouble() else Double.NaN
+            val pitch = if (intent.hasExtra("pitch")) intent.getFloatExtra("pitch", Float.NaN).toDouble() else Double.NaN
+            val roll = if (intent.hasExtra("roll")) intent.getFloatExtra("roll", Float.NaN).toDouble() else Double.NaN
+            val battery = if (intent.hasExtra("battery")) intent.getIntExtra("battery", -1) else -1
+            val moving = speed.isFinite() && accuracy.isFinite() && accuracy <= 25.0 && speed > 0.55
+            val stopped = speed.isFinite() && accuracy.isFinite() && accuracy <= 25.0 && speed < 0.25
+            val motion = when {
+                moving -> "En movimiento"
+                stopped -> "Detenido"
+                else -> "Sin determinar"
+            }
+            val data = JSONObject()
+                .put("available", true)
+                .put("timestamp", System.currentTimeMillis())
+                .put("speed", if (speed.isFinite()) speed else JSONObject.NULL)
+                .put("accuracy", if (accuracy.isFinite()) accuracy else JSONObject.NULL)
+                .put("heading", if (heading.isFinite()) ((heading % 360.0) + 360.0) % 360.0 else JSONObject.NULL)
+                .put("pitch", if (pitch.isFinite()) pitch else JSONObject.NULL)
+                .put("roll", if (roll.isFinite()) roll else JSONObject.NULL)
+                .put("altitude", if (intent.hasExtra("altitude")) intent.getDoubleExtra("altitude", Double.NaN).takeIf { it.isFinite() } ?: JSONObject.NULL else JSONObject.NULL)
+                .put("battery", if (battery >= 0) battery else JSONObject.NULL)
+                .put("motion", motion)
+            server?.publishTelemetryJson(data.toString())
+            runOnUiThread {
+                telemetryState.text = "Telemetría: sensores del teléfono transmitiéndose"
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (!telemetryReceiverRegistered) {
+            ContextCompat.registerReceiver(this, telemetryReceiver, IntentFilter(RemoteService.ACTION_TELEMETRY), ContextCompat.RECEIVER_NOT_EXPORTED)
+            telemetryReceiverRegistered = true
+        }
+    }
+
+    override fun onStop() {
+        if (telemetryReceiverRegistered) {
+            unregisterReceiver(telemetryReceiver)
+            telemetryReceiverRegistered = false
+        }
+        super.onStop()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,6 +165,8 @@ class TransmissionActivity : ComponentActivity() {
         panelContent.addView(serverState)
         clientState = infoText("PC conectadas: 0")
         panelContent.addView(clientState)
+        telemetryState = infoText("Telemetría: esperando. Inicia primero «Iniciar telemetría» en diagnóstico.")
+        panelContent.addView(telemetryState)
         panelContent.addView(TextView(this).apply {
             text = "Abre la dirección indicada en el navegador de la PC. Ambos equipos deben estar conectados a la misma red Wi-Fi."
             textSize = 11f
