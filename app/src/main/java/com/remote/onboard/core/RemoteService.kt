@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
@@ -16,17 +15,19 @@ class RemoteService : Service() {
     companion object {
         private const val CHANNEL_ID = "remote_status"
         private const val NOTIFICATION_ID = 1
+        const val ACTION_TELEMETRY = "com.remote.onboard.TELEMETRY_UPDATE"
     }
 
     private lateinit var telemetryCollector: TelemetryCollector
     private var lastNotificationUpdate = 0L
+    private var lastUiUpdate = 0L
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification("Iniciando telemetría…"))
-
         telemetryCollector = TelemetryCollector(this) { snapshot ->
+            publishTelemetry(snapshot)
             updateTelemetryNotification(snapshot)
         }
         telemetryCollector.start()
@@ -41,20 +42,41 @@ class RemoteService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private fun publishTelemetry(snapshot: TelemetrySnapshot) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastUiUpdate < 250L) return
+        lastUiUpdate = now
+        val update = Intent(ACTION_TELEMETRY).setPackage(packageName).apply {
+            snapshot.latitude?.let { putExtra("latitude", it) }
+            snapshot.longitude?.let { putExtra("longitude", it) }
+            snapshot.altitudeMeters?.let { putExtra("altitude", it) }
+            snapshot.speedMetersPerSecond?.let { putExtra("speed", it) }
+            snapshot.accuracyMeters?.let { putExtra("accuracy", it) }
+            snapshot.orientationAzimuth?.let { putExtra("azimuth", it) }
+            snapshot.orientationPitch?.let { putExtra("pitch", it) }
+            snapshot.orientationRoll?.let { putExtra("roll", it) }
+            snapshot.accelerationX?.let { putExtra("ax", it) }
+            snapshot.accelerationY?.let { putExtra("ay", it) }
+            snapshot.accelerationZ?.let { putExtra("az", it) }
+            snapshot.gyroX?.let { putExtra("gx", it) }
+            snapshot.gyroY?.let { putExtra("gy", it) }
+            snapshot.gyroZ?.let { putExtra("gz", it) }
+            snapshot.batteryPercent?.let { putExtra("battery", it) }
+            snapshot.charging?.let { putExtra("charging", it) }
+            putExtra("timestamp", snapshot.timestampMs)
+        }
+        sendBroadcast(update)
+    }
+
     private fun updateTelemetryNotification(snapshot: TelemetrySnapshot) {
         val now = SystemClock.elapsedRealtime()
         if (now - lastNotificationUpdate < 3_000L) return
         lastNotificationUpdate = now
-
-        val gps = if (snapshot.latitude != null && snapshot.longitude != null) {
-            "GPS activo"
-        } else {
-            "GPS esperando señal/permiso"
-        }
+        val gps = if (snapshot.latitude != null && snapshot.longitude != null) "GPS activo"
+            else "GPS esperando señal/permiso"
         val battery = snapshot.batteryPercent?.let { " · Batería $it%" } ?: ""
-        val message = "Sensores activos · $gps$battery"
         getSystemService(NotificationManager::class.java)
-            .notify(NOTIFICATION_ID, buildNotification(message))
+            .notify(NOTIFICATION_ID, buildNotification("Sensores activos · $gps$battery"))
     }
 
     private fun buildNotification(message: String): Notification =
@@ -67,13 +89,7 @@ class RemoteService : Service() {
             .build()
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Estado de Remote",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(CHANNEL_ID, "Estado de Remote", NotificationManager.IMPORTANCE_LOW)
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 }
