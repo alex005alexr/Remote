@@ -2,6 +2,7 @@ package com.remote.onboard
 
 import android.Manifest
 import android.content.Intent
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -9,11 +10,10 @@ import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.remote.onboard.core.RemoteService
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
     private lateinit var status: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
