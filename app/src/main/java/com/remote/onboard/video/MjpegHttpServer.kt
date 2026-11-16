@@ -13,7 +13,9 @@ import kotlin.concurrent.thread
  */
 class MjpegHttpServer(
     private val port: Int = 8080,
-    private val onClientCountChanged: (Int) -> Unit = {}
+    private val onClientCountChanged: (Int) -> Unit = {},
+    private val onServerStarted: () -> Unit = {},
+    private val onServerError: (String) -> Unit = {}
 ) {
     @Volatile private var running = false
     @Volatile private var latestFrame: ByteArray? = null
@@ -27,14 +29,15 @@ class MjpegHttpServer(
         thread(name = "remote-http-accept") {
             try {
                 serverSocket = ServerSocket(port, 8)
+                onServerStarted()
                 while (running) {
                     val socket = serverSocket?.accept() ?: break
                     clients.add(socket)
                     onClientCountChanged(clients.size)
                     thread(name = "remote-http-client") { handleClient(socket) }
                 }
-            } catch (_: Exception) {
-                // Closing the server socket is the normal stop path.
+            } catch (e: Exception) {
+                if (running) onServerError(e.message ?: e.javaClass.simpleName)
             } finally {
                 running = false
             }
