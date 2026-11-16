@@ -265,9 +265,8 @@ class TransmissionActivity : Activity() {
         } catch (_: Exception) { null }
     }
 
-    private fun displayRotation(): Int =
-        if (android.os.Build.VERSION.SDK_INT >= 30) display?.rotation ?: Surface.ROTATION_0
-        else @Suppress("DEPRECATION") windowManager.defaultDisplay.rotation
+    @Suppress("DEPRECATION")
+    private fun displayRotation(): Int = windowManager.defaultDisplay.rotation
 
     private fun requestCameraPermission() {
         if (cameraPermissionRequested) return
