@@ -61,3 +61,17 @@ La rama `feature/usb-serial` incorpora una primera capa de comunicación serial 
 6. Desconecta el cable y comprueba que Remote indique la desconexión.
 
 Esta fase solo abre el puerto y recibe bytes. Todavía no transmite comandos, no define el protocolo de control y no acciona motores. No se debe conectar hardware de potencia para estas pruebas. El siguiente paso, una vez validado con la placa real, será acordar un protocolo de mensajes y añadir validación, latido de conexión y parada segura en el controlador local.
+
+
+## Interfaz de transmisión
+
+Se añadió una primera pantalla horizontal accesible desde **Abrir interfaz de transmisión** en el diagnóstico.
+
+- Área principal reservada para la imagen de cámara.
+- Indicador visible de transmisión desconectada.
+- Espacio para datos breves de GPS y enlace.
+- Panel lateral con selección de cámara frontal o trasera.
+- Estado independiente de cámara, red y USB/ESP32.
+- Mantiene la pantalla encendida mientras está abierta.
+
+Esta entrega es únicamente la estructura visual y navegación. La selección frontal/trasera cambia el estado de interfaz, pero todavía no activa sensores de cámara ni transmite video. La siguiente integración será CameraX para obtener la imagen local y después el transporte de video por red/LTE. La pantalla de recepción de la estación base será una etapa separada si se decide que el video se visualice en otro dispositivo.
