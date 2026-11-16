@@ -2,9 +2,9 @@ name: Android build
 
 on:
   push:
-    branches: [main, desarrollo]
+    branches: [main, desarrollo, 'feature/**']
   pull_request:
-    branches: [main]
+    branches: [main, desarrollo]
   workflow_dispatch:
 
 concurrency:
