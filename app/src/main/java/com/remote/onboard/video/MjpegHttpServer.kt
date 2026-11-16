@@ -21,7 +21,6 @@ class MjpegHttpServer(
     @Volatile private var latestFrame: ByteArray? = null
     private var serverSocket: ServerSocket? = null
     private val clients = ConcurrentHashMap.newKeySet<Socket>()
-    private val frameLock = Object()
 
     fun start() {
         if (running) return
@@ -46,7 +45,6 @@ class MjpegHttpServer(
 
     fun publishJpeg(jpeg: ByteArray) {
         latestFrame = jpeg
-        synchronized(frameLock) { frameLock.notifyAll() }
     }
 
     fun isRunning(): Boolean = running
@@ -57,7 +55,6 @@ class MjpegHttpServer(
         serverSocket = null
         clients.toList().forEach { try { it.close() } catch (_: Exception) { } }
         clients.clear()
-        synchronized(frameLock) { frameLock.notifyAll() }
         onClientCountChanged(0)
     }
 
@@ -112,13 +109,11 @@ main{padding:12px;max-width:1200px;margin:auto}img{display:block;width:100%;heig
         out.flush()
         var lastFrame: ByteArray? = null
         while (running && !socket.isClosed) {
-            val frame = synchronized(frameLock) {
-                if (latestFrame === lastFrame || latestFrame == null) {
-                    try { frameLock.wait(1000) } catch (_: InterruptedException) { }
-                }
-                latestFrame
-            } ?: continue
-            if (frame === lastFrame) continue
+            val frame = latestFrame
+            if (frame == null || frame === lastFrame) {
+                try { Thread.sleep(40) } catch (_: InterruptedException) { break }
+                continue
+            }
             out.write("--remote-frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${frame.size}\r\n\r\n".toByteArray())
             out.write(frame)
             out.write("\r\n".toByteArray())
