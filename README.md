@@ -5,8 +5,8 @@ Proyecto para convertir un teléfono Android en una computadora de abordo para u
 ## Hardware inicial
 
 - Teléfono: TECNO SPARK 10C, modelo KL5K, 8 GB RAM.
-- USB-C OTG: comprobado con pendrive y acceso a archivos.
-- Controlador: ESP32 por USB serial OTG.
+- Android: 12 (confirmado por el usuario).\n- USB-C OTG: comprobado con pendrive y acceso a archivos.
+- Controlador recomendado: ESP32-S3-DevKitC-1 (pendiente de compra/prueba).
 - Conectividad inicial: Wi-Fi en red local.
 - Evolución prevista: acceso remoto mediante 4G.
 
