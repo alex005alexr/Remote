@@ -12,8 +12,6 @@ import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import com.hoho.android.usbserial.util.SerialInputOutputManager
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 /**
  * USB serial connection used for initial ESP32/adapter bring-up.
@@ -34,7 +32,6 @@ class UsbSerialController(
     private var selectedDriver: UsbSerialDriver? = null
     private var serialPort: UsbSerialPort? = null
     private var serialIoManager: SerialInputOutputManager? = null
-    private var executor: ExecutorService? = null
     private var connection: android.hardware.usb.UsbDeviceConnection? = null
     private var receivedBytes = 0L
 
@@ -126,7 +123,7 @@ class UsbSerialController(
                 }
             })
             serialIoManager = ioManager
-            executor = Executors.newSingleThreadExecutor().also { it.submit(ioManager) }
+            ioManager.start()
             onStatus("Puerto serial conectado · ${driver.javaClass.simpleName} · ${BAUD_RATE} baudios · 8N1. Esperando datos.")
         } catch (e: Exception) {
             closePort()
@@ -143,8 +140,6 @@ class UsbSerialController(
     private fun closePort() {
         serialIoManager?.stop()
         serialIoManager = null
-        executor?.shutdownNow()
-        executor = null
         try {
             serialPort?.close()
         } catch (_: Exception) {
