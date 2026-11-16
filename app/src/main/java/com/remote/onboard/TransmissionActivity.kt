@@ -207,10 +207,12 @@ class TransmissionActivity : Activity() {
         val chromaHeight = height / 2
         val uBuffer = u.buffer
         val vBuffer = v.buffer
+        val uBase = uBuffer.position()
+        val vBase = vBuffer.position()
         for (row in 0 until chromaHeight) {
             for (col in 0 until chromaWidth) {
-                val ui = row * u.rowStride + col * u.pixelStride
-                val vi = row * v.rowStride + col * v.pixelStride
+                val ui = uBase + row * u.rowStride + col * u.pixelStride
+                val vi = vBase + row * v.rowStride + col * v.pixelStride
                 nv21[offset++] = vBuffer.get(vi)
                 nv21[offset++] = uBuffer.get(ui)
             }
@@ -237,10 +239,11 @@ class TransmissionActivity : Activity() {
         width: Int, height: Int, output: ByteArray, outputOffset: Int, outputPixelStride: Int
     ) {
         var outIndex = outputOffset
+        val base = buffer.position()
         for (row in 0 until height) {
             val rowStart = row * rowStride
             for (col in 0 until width) {
-                output[outIndex] = buffer.get(rowStart + col * pixelStride)
+                output[outIndex] = buffer.get(base + rowStart + col * pixelStride)
                 outIndex += outputPixelStride
             }
         }
