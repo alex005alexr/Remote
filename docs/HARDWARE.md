@@ -97,3 +97,28 @@ El servidor se detiene al cerrar la pantalla de transmisión. Esta primera versi
 - La dirección IP puede cambiar al reconectar el teléfono a otra Wi-Fi.
 - La app debe permanecer en la pantalla de transmisión para mantener la cámara y el servidor activos.
 - La siguiente fase, después de validar la red local, será mejorar eficiencia/latencia y preparar el acceso remoto por 4G con autenticación y transporte seguro.
+
+
+## Acceso remoto por 4G mediante Tailscale (sin VPS)
+
+La transmisión conserva el servidor HTTP local en el teléfono y el puerto TCP 8080. Tailscale crea una red privada cifrada entre el teléfono y la PC; no se abre ni se redirige ningún puerto del router y no se contrata un VPS.
+
+### Preparación de los dispositivos
+
+1. Instalar **Tailscale** desde Google Play en el teléfono Android.
+2. Instalar Tailscale para Windows en la PC de casa.
+3. Iniciar sesión en ambos con la misma cuenta de Tailscale y autorizar la conexión VPN que solicita Android.
+4. Dejar Tailscale conectado en los dos dispositivos. La PC puede permanecer conectada al router de casa por Wi-Fi.
+5. En el teléfono, abrir Remote, iniciar la telemetría desde Diagnóstico y entrar en **Abrir interfaz de transmisión**.
+6. La pantalla muestra dos direcciones: la IP Wi-Fi para la prueba LAN y, cuando Android exponga la interfaz de Tailscale, la dirección privada remota. Abrir en el navegador de la PC la dirección remota con el puerto 8080, por ejemplo `http://100.x.y.z:8080`.
+7. Para probar desde fuera de casa, mantener la PC conectada al Wi-Fi doméstico, desconectar el teléfono de Wi-Fi y usar sus datos móviles 4G/5G. Abrir la dirección Tailscale desde el navegador.
+
+### Consideraciones
+
+- El teléfono debe tener Tailscale conectado y Remote debe permanecer en la pantalla de transmisión para mantener cámara y servidor activos.
+- La dirección Tailscale suele pertenecer al rango `100.64.0.0/10`; Remote intenta detectarla y mostrarla. Si no aparece, comprobar que Tailscale esté conectado y volver a abrir la pantalla de transmisión.
+- El tráfico entre los dispositivos viaja por la red privada cifrada de Tailscale. El visor HTTP no incorpora autenticación propia: solo deben pertenecer a la red privada los dispositivos y usuarios autorizados en la cuenta/organización de Tailscale.
+- No crear reglas de port forwarding ni publicar el puerto 8080 en Internet.
+- Si Tailscale no logra una conexión directa por las restricciones NAT, puede usar sus relays DERP. No requiere que el usuario administre un VPS.
+- Esta integración usa la aplicación oficial Tailscale instalada por separado; no incorpora el SDK de Tailscale dentro de Remote.
+- El acceso LAN anterior sigue disponible y no depende de Tailscale.
