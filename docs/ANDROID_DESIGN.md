@@ -16,7 +16,7 @@ El servicio se inicia desde una actividad visible, mediante una acción explíci
 
 La operación con pantalla apagada debe probarse en el TECNO porque HiOS puede aplicar restricciones adicionales de batería y procesos en segundo plano.
 
-## Módulos previstos
+## Módulos
 
 - core: ciclo de vida, estado general, registro y coordinación.
 - telemetry: ubicación, sensores y batería.
@@ -26,6 +26,29 @@ La operación con pantalla apagada debe probarse en el TECNO porque HiOS puede a
 
 Cada módulo debe aislar sus errores y exponer estado/diagnóstico sin detener los demás.
 
+## Telemetría implementada (primer corte)
+
+La primera versión del módulo `telemetry` incluye:
+
+- Ubicación mediante `LocationManager`, priorizando GPS cuando existe permiso preciso y usando proveedor de red cuando corresponde.
+- Última ubicación conocida y actualizaciones periódicas.
+- Acelerómetro, giroscopio y vector de rotación cuando el hardware los expone.
+- Orientación derivada: azimut, inclinación y alabeo, expresados en grados.
+- Nivel de batería y estado de carga.
+- Modelo `TelemetrySnapshot` con campos opcionales: los sensores o datos que no estén disponibles permanecen como `null`.
+- Servicio en primer plano que inicia/detiene el recolector y refleja estado resumido en su notificación.
+- Solicitud de permisos de ubicación desde la actividad visible. Si el usuario los deniega, Remote puede seguir recopilando sensores y batería; GPS queda deshabilitado.
+
+La frecuencia de sensores usa el modo normal para reducir consumo. El módulo todavía no transmite datos por red ni los muestra en un panel: esa será la siguiente integración.
+
+## Pendiente de validar en el teléfono real
+
+1. Confirmar qué sensores físicos/virtuales reporta el TECNO KL5K.
+2. Verificar precisión y estabilidad del GPS en exterior.
+3. Probar operación con pantalla apagada y restricciones de batería de HiOS.
+4. Medir consumo y temperatura durante sesiones prolongadas.
+5. Comprobar revocación de permisos y recuperación al volver a concederlos.
+
 ## Estado actual
 
-Se añadió un esqueleto mínimo de proyecto Android y un servicio en primer plano. Aún no están implementados telemetría, cámara, USB serial, estación base ni protocolo de control.
+Existe un esqueleto Android con servicio en primer plano y primer corte del recolector de telemetría. Cámara, USB serial, estación base, transporte de red y protocolo de control todavía no están implementados.
