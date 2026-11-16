@@ -26,29 +26,43 @@ La operación con pantalla apagada debe probarse en el TECNO porque HiOS puede a
 
 Cada módulo debe aislar sus errores y exponer estado/diagnóstico sin detener los demás.
 
-## Telemetría implementada (primer corte)
+## Telemetría implementada
 
 La primera versión del módulo `telemetry` incluye:
 
-- Ubicación mediante `LocationManager`, priorizando GPS cuando existe permiso preciso y usando proveedor de red cuando corresponde.
-- Última ubicación conocida y actualizaciones periódicas.
+- Ubicación mediante `LocationManager`, última ubicación conocida y actualizaciones periódicas.
 - Acelerómetro, giroscopio y vector de rotación cuando el hardware los expone.
 - Orientación derivada: azimut, inclinación y alabeo, expresados en grados.
 - Nivel de batería y estado de carga.
-- Modelo `TelemetrySnapshot` con campos opcionales: los sensores o datos que no estén disponibles permanecen como `null`.
-- Servicio en primer plano que inicia/detiene el recolector y refleja estado resumido en su notificación.
-- Solicitud de permisos de ubicación desde la actividad visible. Si el usuario los deniega, Remote puede seguir recopilando sensores y batería; GPS queda deshabilitado.
+- Modelo `TelemetrySnapshot` con campos opcionales: los sensores o datos no disponibles permanecen como `null`.
+- Servicio en primer plano que inicia/detiene el recolector.
+- Solicitud de permisos de ubicación desde la actividad visible. Los sensores y batería funcionan aunque el usuario no conceda GPS.
 
-La frecuencia de sensores usa el modo normal para reducir consumo. El módulo todavía no transmite datos por red ni los muestra en un panel: esa será la siguiente integración.
+## Diagnóstico local implementado
 
-## Pendiente de validar en el teléfono real
+Como todavía no hay estación base, la pantalla principal de Android funciona temporalmente como panel de pruebas:
 
-1. Confirmar qué sensores físicos/virtuales reporta el TECNO KL5K.
-2. Verificar precisión y estabilidad del GPS en exterior.
-3. Probar operación con pantalla apagada y restricciones de batería de HiOS.
-4. Medir consumo y temperatura durante sesiones prolongadas.
-5. Comprobar revocación de permisos y recuperación al volver a concederlos.
+- Muestra en vivo GPS, altitud, velocidad, precisión, orientación, acelerómetro, giroscopio y batería.
+- Los valores no disponibles se muestran como guiones, para distinguirlos de lecturas válidas.
+- Permite iniciar y detener el servicio desde la pantalla.
+- Muestra los dispositivos USB conectados, fabricante/producto cuando el dispositivo los informa, VID/PID y clases de interfaces.
+- Actualiza la lista USB al conectar o desconectar un dispositivo y ofrece actualización manual.
+
+Esta pantalla es de diagnóstico local; no reemplaza la futura estación base ni transmite telemetría por Wi-Fi.
+
+## USB: alcance actual y siguiente trabajo
+
+Está declarada la capacidad USB host y el panel ya enumera dispositivos conectados. Todavía no se abre el puerto serial, no se solicitan permisos USB, no se intercambian mensajes con el ESP32 y no existe reconexión serial. Esos pasos se implementarán y probarán cuando se conecte una placa compatible.
+
+## Pruebas pendientes en el TECNO KL5K
+
+1. Instalar el APK y conceder permiso de ubicación precisa o aproximada.
+2. Iniciar Remote y comprobar qué sensores producen valores.
+3. Mover e inclinar el teléfono para comprobar cambios de acelerómetro, giroscopio y orientación.
+4. Probar GPS en exterior y verificar estabilidad/precisión.
+5. Conectar un pendrive OTG y confirmar que aparece en la sección USB.
+6. Dejar el servicio activo con pantalla apagada y comprobar restricciones de HiOS, consumo y temperatura.
 
 ## Estado actual
 
-Existe un esqueleto Android con servicio en primer plano y primer corte del recolector de telemetría. Cámara, USB serial, estación base, transporte de red y protocolo de control todavía no están implementados.
+Existe un servicio Android, primer corte del recolector de telemetría y una pantalla de diagnóstico local. La enumeración USB está preparada para pruebas sin placa serial. Cámara, USB serial, estación base, transporte de red y protocolo de control todavía no están implementados.
