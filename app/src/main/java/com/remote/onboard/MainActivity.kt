@@ -40,7 +40,13 @@ class MainActivity : Activity() {
     }
 
     private val usbReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) = refreshUsbStatus()
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == UsbManager.ACTION_USB_DEVICE_DETACHED) {
+                usbSerialController.disconnect()
+                serialDataView.text = "Dispositivo USB desconectado."
+            }
+            refreshUsbStatus()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
