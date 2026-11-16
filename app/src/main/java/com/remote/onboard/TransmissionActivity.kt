@@ -49,6 +49,7 @@ class TransmissionActivity : ComponentActivity() {
     private lateinit var cameraState: TextView
     private lateinit var serverState: TextView
     private lateinit var viewerAddress: TextView
+    private lateinit var remoteAddress: TextView
     private lateinit var clientState: TextView
     private lateinit var telemetryState: TextView
     private lateinit var cameraExecutor: ExecutorService
@@ -161,6 +162,11 @@ class TransmissionActivity : ComponentActivity() {
             setTextIsSelectable(true)
         }
         panelContent.addView(viewerAddress)
+        panelContent.addView(labelText("ACCESO REMOTO · 4G CON TAILSCALE"))
+        remoteAddress = infoText("Activa Tailscale en el teléfono para mostrar la dirección privada.").apply {
+            setTextIsSelectable(true)
+        }
+        panelContent.addView(remoteAddress)
         serverState = infoText("Servidor: iniciando…")
         panelContent.addView(serverState)
         clientState = infoText("PC conectadas: 0")
@@ -168,7 +174,7 @@ class TransmissionActivity : ComponentActivity() {
         telemetryState = infoText("Telemetría: esperando. Inicia primero «Iniciar telemetría» en diagnóstico.")
         panelContent.addView(telemetryState)
         panelContent.addView(TextView(this).apply {
-            text = "Abre la dirección indicada en el navegador de la PC. Ambos equipos deben estar conectados a la misma red Wi-Fi."
+            text = "En casa: abre la dirección Wi-Fi desde la PC. Fuera de casa: activa Tailscale en el teléfono y en la PC, con la misma cuenta, y abre la dirección remota indicada. Mantén esta pantalla abierta."
             textSize = 11f
             setTextColor(0xFFB7C5D3.toInt())
             setPadding(0, dp(8), 0, dp(8))
@@ -201,6 +207,7 @@ class TransmissionActivity : ComponentActivity() {
             val ip = findWifiIpv4()
             viewerAddress.text = if (ip != null) "http://$ip:$SERVER_PORT" else
                 "No se detectó IP Wi-Fi. Conecta el teléfono a la misma Wi-Fi que la PC."
+            updateRemoteAddress()
         }
 
         val future = ProcessCameraProvider.getInstance(this)
@@ -307,6 +314,26 @@ class TransmissionActivity : ComponentActivity() {
                 outIndex += outputPixelStride
             }
         }
+    }
+
+    private fun updateRemoteAddress() {
+        val ip = findTailscaleIpv4()
+        remoteAddress.text = if (ip != null) "http://$ip:$SERVER_PORT" else
+            "Tailscale no está activo o Android aún no muestra su dirección. Actívalo y vuelve a abrir esta pantalla."
+    }
+
+    private fun findTailscaleIpv4(): String? {
+        return try {
+            Collections.list(NetworkInterface.getNetworkInterfaces())
+                .filter { it.isUp && !it.isLoopback }
+                .flatMap { Collections.list(it.inetAddresses) }
+                .filterIsInstance<Inet4Address>()
+                .firstOrNull { address ->
+                    val bytes = address.address.map { it.toInt() and 0xff }
+                    bytes.size == 4 && bytes[0] == 100 && bytes[1] in 64..127
+                }
+                ?.hostAddress
+        } catch (_: Exception) { null }
     }
 
     private fun findWifiIpv4(): String? {
