@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Avoid spending runner time building every intermediate commit in a rapid series.
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   assemble:
     runs-on: ubuntu-latest
