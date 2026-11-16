@@ -19,7 +19,7 @@ class MjpegHttpServer(
 ) {
     @Volatile private var running = false
     @Volatile private var latestFrame: ByteArray? = null
-    @Volatile private var latestTelemetry: String = """{\"available\":false,\"message\":\"Esperando telemetría del teléfono\"}"""
+    @Volatile private var latestTelemetry: String = """{"available":false,"message":"Esperando telemetría del teléfono"}"""
     private var serverSocket: ServerSocket? = null
     private val clients = ConcurrentHashMap.newKeySet<Socket>()
 
