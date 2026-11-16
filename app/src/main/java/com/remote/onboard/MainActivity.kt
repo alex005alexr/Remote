@@ -2,14 +2,17 @@ package com.remote.onboard
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbManager
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
@@ -23,6 +26,7 @@ class MainActivity : Activity() {
     private lateinit var telemetryView: TextView
     private lateinit var usbView: TextView
     private lateinit var statusView: TextView
+    private lateinit var locationStatusView: TextView
     private var receiverRegistered = false
 
     private val telemetryReceiver = object : BroadcastReceiver() {
@@ -40,17 +44,18 @@ class MainActivity : Activity() {
         telemetryView = sectionText("Todavía no hay datos. Inicia Remote.")
         usbView = sectionText("")
         statusView = sectionText("Remote detenido.")
+        locationStatusView = sectionText("")
 
         val startButton = Button(this).apply {
             text = "Iniciar telemetría"
             setOnClickListener {
                 requestNotificationPermissionIfNeeded()
-                if (hasLocationPermission()) startRemoteService()
-                else requestPermissions(
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                    LOCATION_PERMISSION_REQUEST
-                )
+                beginStartup()
             }
+        }
+        val locationButton = Button(this).apply {
+            text = "Activar / configurar ubicación"
+            setOnClickListener { openLocationSettings() }
         }
         val stopButton = Button(this).apply {
             text = "Detener sistema"
@@ -73,7 +78,9 @@ class MainActivity : Activity() {
                 gravity = Gravity.CENTER
             })
             addView(statusView)
+            addView(locationStatusView)
             addView(startButton)
+            addView(locationButton)
             addView(stopButton)
             addView(TextView(this@MainActivity).apply {
                 text = "TELEMETRÍA DEL TELÉFONO"
@@ -91,6 +98,7 @@ class MainActivity : Activity() {
         }
         setContentView(ScrollView(this).apply { addView(root) })
         refreshUsbStatus()
+        refreshLocationStatus()
     }
 
     override fun onResume() {
@@ -106,6 +114,7 @@ class MainActivity : Activity() {
             receiverRegistered = true
         }
         refreshUsbStatus()
+        refreshLocationStatus()
     }
 
     override fun onPause() {
@@ -123,6 +132,50 @@ class MainActivity : Activity() {
         setPadding(0, 4, 0, 4)
     }
 
+    private fun beginStartup() {
+        if (!hasLocationPermission()) {
+            statusView.text = "Se necesita permiso de ubicación para obtener GPS. Puedes continuar usando los demás sensores."
+            requestPermissions(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                LOCATION_PERMISSION_REQUEST
+            )
+            return
+        }
+        if (!isLocationEnabled()) {
+            AlertDialog.Builder(this)
+                .setTitle("Ubicación desactivada")
+                .setMessage("Remote tiene permiso, pero la ubicación del teléfono está apagada. Actívala para recibir GPS. Los demás sensores pueden funcionar sin GPS.")
+                .setPositiveButton("Activar ubicación") { _, _ -> openLocationSettings() }
+                .setNegativeButton("Continuar sin GPS") { _, _ -> startRemoteService() }
+                .show()
+            return
+        }
+        startRemoteService()
+    }
+
+    private fun isLocationEnabled(): Boolean {
+        val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) manager.isLocationEnabled
+        else manager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    private fun openLocationSettings() {
+        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+    }
+
+    private fun refreshLocationStatus() {
+        val permission = when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ->
+                "Preciso concedido"
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ->
+                "Aproximado concedido"
+            else -> "Permiso pendiente"
+        }
+        val enabled = isLocationEnabled()
+        locationStatusView.text = "UBICACIÓN · $permission · " +
+            if (enabled) "Servicio de ubicación activado" else "Servicio de ubicación DESACTIVADO"
+    }
     private fun hasLocationPermission(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -135,8 +188,22 @@ class MainActivity : Activity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == LOCATION_PERMISSION_REQUEST) {
-            startRemoteService()
-            if (!hasLocationPermission()) statusView.text = "Remote activo. GPS sin permiso; sensores disponibles."
+            refreshLocationStatus()
+            if (hasLocationPermission()) {
+                if (isLocationEnabled()) startRemoteService()
+                else {
+                    statusView.text = "Permiso concedido. Activa la ubicación para recibir GPS."
+                    AlertDialog.Builder(this)
+                        .setTitle("Activa la ubicación")
+                        .setMessage("El permiso fue concedido, pero el servicio de ubicación está apagado.")
+                        .setPositiveButton("Abrir ajustes") { _, _ -> openLocationSettings() }
+                        .setNegativeButton("Ahora no") { _, _ -> startRemoteService() }
+                        .show()
+                }
+            } else {
+                startRemoteService()
+                statusView.text = "Remote activo. GPS sin permiso; sensores disponibles."
+            }
         }
     }
 
