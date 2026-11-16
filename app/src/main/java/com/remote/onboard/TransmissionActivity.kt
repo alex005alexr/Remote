@@ -1,7 +1,6 @@
 package com.remote.onboard
 
 import android.Manifest
-import android.app.Activity
 import android.content.pm.PackageManager
 import android.content.pm.ActivityInfo
 import android.graphics.BitmapFactory
@@ -10,7 +9,6 @@ import android.graphics.Rect
 import android.graphics.ImageFormat
 import android.graphics.YuvImage
 import android.os.Bundle
-import android.view.Gravity
 import android.view.Surface
 import android.view.View
 import android.view.WindowManager
@@ -19,6 +17,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.activity.ComponentActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -39,7 +38,7 @@ import java.util.concurrent.Executors
  * Onboard camera screen and first-stage Wi-Fi LAN MJPEG broadcaster.
  * The PC viewer is served directly by this phone on port 8080.
  */
-class TransmissionActivity : Activity() {
+class TransmissionActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var cameraState: TextView
     private lateinit var serverState: TextView
@@ -100,7 +99,7 @@ class TransmissionActivity : Activity() {
         })
         panelContent.addView(labelText("VISOR EN LA PC · MISMA WI-FI"))
         viewerAddress = infoText("Buscando dirección de red…").apply {
-            textIsSelectable = true
+            setTextIsSelectable(true)
         }
         panelContent.addView(viewerAddress)
         serverState = infoText("Servidor: iniciando…")
