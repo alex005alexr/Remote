@@ -103,6 +103,8 @@ class UsbSerialController(
                     return
                 }
 
+            connection = usbConnection
+            serialPort = port
             port.open(usbConnection)
             port.setParameters(
                 BAUD_RATE,
@@ -110,8 +112,6 @@ class UsbSerialController(
                 UsbSerialPort.STOPBITS_1,
                 UsbSerialPort.PARITY_NONE
             )
-            connection = usbConnection
-            serialPort = port
             receivedBytes = 0L
 
             val ioManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
