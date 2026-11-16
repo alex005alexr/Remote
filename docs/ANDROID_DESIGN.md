@@ -66,3 +66,24 @@ Está declarada la capacidad USB host y el panel ya enumera dispositivos conecta
 ## Estado actual
 
 Existe un servicio Android, primer corte del recolector de telemetría y una pantalla de diagnóstico local. La enumeración USB está preparada para pruebas sin placa serial. Cámara, USB serial, estación base, transporte de red y protocolo de control todavía no están implementados.
+
+## Permisos de ubicación y firma de actualizaciones
+
+La pantalla de diagnóstico muestra el estado del permiso (preciso/aproximado/pendiente) y si los servicios de ubicación del teléfono están activados. Al iniciar:
+
+1. Si falta el permiso, Android muestra la solicitud de ubicación.
+2. Si el permiso existe pero la ubicación está apagada, Remote ofrece abrir los ajustes del sistema.
+3. El usuario puede continuar sin GPS; los demás sensores siguen funcionando.
+
+Android no permite que una aplicación active GPS silenciosamente. El usuario debe confirmarlo desde los ajustes del sistema.
+
+Para permitir instalar nuevas versiones encima de la anterior, todas las APK distribuidas deben firmarse con la misma clave. El workflow usa una clave de carga persistente guardada como secretos del repositorio:
+
+- `REMOTE_KEYSTORE_BASE64`: archivo JKS codificado en Base64.
+- `REMOTE_STORE_PASSWORD`: contraseña del almacén.
+- `REMOTE_KEY_ALIAS`: alias de la clave.
+- `REMOTE_KEY_PASSWORD`: contraseña de la clave.
+
+Cuando estos cuatro secretos están configurados, Actions genera `Remote-update-apk` (release firmado). Mientras no estén configurados, genera `Remote-debug-apk`, que es temporal y puede no permitir actualizar instalaciones hechas con otra clave. No subir nunca el archivo JKS ni sus contraseñas al repositorio.
+
+El `versionCode` de cada ejecución se deriva del número de ejecución de GitHub Actions para que cada APK nueva tenga una versión superior.
