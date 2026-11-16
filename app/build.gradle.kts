@@ -16,6 +16,12 @@ android {
     namespace = "com.remote.onboard"
     compileSdk = 35
 
+    // Remote is currently distributed as a sideloaded APK, not through Google Play.
+    // Keep targetSdk 32 for the Android 12 test device and suppress only the Play-target warning.
+    lint {
+        disable += "ExpiredTargetSdkVersion"
+    }
+
     defaultConfig {
         applicationId = "com.remote.onboard"
         minSdk = 26
