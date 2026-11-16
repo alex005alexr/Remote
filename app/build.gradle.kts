@@ -16,8 +16,6 @@ android {
     namespace = "com.remote.onboard"
     compileSdk = 35
 
-    // Remote is currently distributed as a sideloaded APK, not through Google Play.
-    // Keep targetSdk 32 for the Android 12 test device and suppress only the Play-target warning.
     lint {
         disable += "ExpiredTargetSdkVersion"
     }
@@ -43,7 +41,6 @@ android {
 
     buildTypes {
         getByName("debug") {
-            // Debug builds are for local development only. Their signing key may vary by runner.
         }
         getByName("release") {
             isMinifyEnabled = false
@@ -63,4 +60,12 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
+    // ComponentActivity provides the LifecycleOwner required by CameraX.
+    implementation("androidx.activity:activity-ktx:1.10.1")
+    val cameraXVersion = "1.4.2"
+    implementation("androidx.camera:camera-core:$cameraXVersion")
+    implementation("androidx.camera:camera-camera2:$cameraXVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
+    implementation("androidx.camera:camera-view:$cameraXVersion")
+    implementation("com.github.mik3y:usb-serial-for-android:3.9.0")
 }

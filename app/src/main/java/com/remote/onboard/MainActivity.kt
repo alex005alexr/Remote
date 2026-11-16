@@ -20,6 +20,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.remote.onboard.core.RemoteService
+import com.remote.onboard.usb.UsbSerialController
 import java.util.Locale
 
 class MainActivity : Activity() {
@@ -27,6 +28,9 @@ class MainActivity : Activity() {
     private lateinit var usbView: TextView
     private lateinit var statusView: TextView
     private lateinit var locationStatusView: TextView
+    private lateinit var serialStatusView: TextView
+    private lateinit var serialDataView: TextView
+    private lateinit var usbSerialController: UsbSerialController
     private var receiverRegistered = false
 
     private val telemetryReceiver = object : BroadcastReceiver() {
@@ -36,7 +40,13 @@ class MainActivity : Activity() {
     }
 
     private val usbReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) = refreshUsbStatus()
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == UsbManager.ACTION_USB_DEVICE_DETACHED) {
+                usbSerialController.disconnect()
+                serialDataView.text = "Dispositivo USB desconectado."
+            }
+            refreshUsbStatus()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,12 +55,25 @@ class MainActivity : Activity() {
         usbView = sectionText("")
         statusView = sectionText("Remote detenido.")
         locationStatusView = sectionText("")
+        serialStatusView = sectionText("Puerto serial desconectado.")
+        serialDataView = sectionText("Todavía no se reciben datos.")
+        usbSerialController = UsbSerialController(
+            this,
+            onStatus = { message -> runOnUiThread { serialStatusView.text = message } },
+            onReceived = { message -> runOnUiThread { serialDataView.text = message } }
+        )
 
         val startButton = Button(this).apply {
             text = "Iniciar telemetría"
             setOnClickListener {
                 requestNotificationPermissionIfNeeded()
                 beginStartup()
+            }
+        }
+        val transmissionButton = Button(this).apply {
+            text = "Abrir interfaz de transmisión"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, TransmissionActivity::class.java))
             }
         }
         val locationButton = Button(this).apply {
@@ -68,6 +91,14 @@ class MainActivity : Activity() {
             text = "Actualizar dispositivos USB"
             setOnClickListener { refreshUsbStatus() }
         }
+        val connectSerialButton = Button(this).apply {
+            text = "Conectar puerto serial USB"
+            setOnClickListener { usbSerialController.connectFirstAvailable() }
+        }
+        val disconnectSerialButton = Button(this).apply {
+            text = "Desconectar puerto serial"
+            setOnClickListener { usbSerialController.disconnect() }
+        }
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -80,6 +111,7 @@ class MainActivity : Activity() {
             addView(statusView)
             addView(locationStatusView)
             addView(startButton)
+            addView(transmissionButton)
             addView(locationButton)
             addView(stopButton)
             addView(TextView(this@MainActivity).apply {
@@ -95,6 +127,20 @@ class MainActivity : Activity() {
             })
             addView(usbView)
             addView(refreshUsbButton)
+            addView(TextView(this@MainActivity).apply {
+                text = "COMUNICACIÓN SERIAL USB"
+                textSize = 18f
+                setPadding(0, 24, 0, 8)
+            })
+            addView(serialStatusView)
+            addView(connectSerialButton)
+            addView(disconnectSerialButton)
+            addView(TextView(this@MainActivity).apply {
+                text = "DATOS RECIBIDOS"
+                textSize = 16f
+                setPadding(0, 12, 0, 4)
+            })
+            addView(serialDataView)
         }
         setContentView(ScrollView(this).apply { addView(root) })
         refreshUsbStatus()
@@ -115,6 +161,11 @@ class MainActivity : Activity() {
         }
         refreshUsbStatus()
         refreshLocationStatus()
+    }
+
+    override fun onDestroy() {
+        usbSerialController.release()
+        super.onDestroy()
     }
 
     override fun onPause() {
