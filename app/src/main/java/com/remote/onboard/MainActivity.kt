@@ -70,6 +70,12 @@ class MainActivity : Activity() {
                 beginStartup()
             }
         }
+        val transmissionButton = Button(this).apply {
+            text = "Abrir interfaz de transmisión"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, TransmissionActivity::class.java))
+            }
+        }
         val locationButton = Button(this).apply {
             text = "Activar / configurar ubicación"
             setOnClickListener { openLocationSettings() }
@@ -105,6 +111,7 @@ class MainActivity : Activity() {
             addView(statusView)
             addView(locationStatusView)
             addView(startButton)
+            addView(transmissionButton)
             addView(locationButton)
             addView(stopButton)
             addView(TextView(this@MainActivity).apply {
